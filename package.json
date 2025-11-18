@@ -1,0 +1,39 @@
+{
+  "name": "foxfi-protocol",
+  "version": "0.1.0",
+  "description": "FoxFi Protocol - Intent-Based DEX on Solana",
+  "main": "index.js",
+  "scripts": {
+    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "test": "anchor test",
+    "build": "anchor build",
+    "deploy:devnet": "anchor deploy --provider.cluster devnet",
+    "deploy:mainnet": "anchor deploy --provider.cluster mainnet"
+  },
+  "keywords": [
+    "solana",
+    "anchor",
+    "defi",
+    "dex",
+    "intent-based"
+  ],
+  "author": "FoxFi Team",
+  "license": "MIT",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/spl-token": "^0.4.1",
+    "@solana/web3.js": "^1.95.0"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.5",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "prettier": "^3.2.4",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.3.3"
+  }
+}
+

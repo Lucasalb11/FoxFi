@@ -1,0 +1,60 @@
+# Anchor
+.anchor
+target/
+**/*.rs.bk
+test-ledger/
+
+# Node
+node_modules/
+dist/
+build/
+.DS_Store
+*.log
+*.tgz
+
+# IDL
+*.so
+*.dylib
+
+# Keys (NEVER COMMIT PRIVATE KEYS!)
+*-keypair.json
+*.key
+id.json
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Next.js
+.next/
+out/
+.vercel
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.cache/
+tmp/
+temp/
+
