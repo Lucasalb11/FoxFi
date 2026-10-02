@@ -37,6 +37,10 @@ pub struct Intent {
     
     /// Actual output amount received (set after execution)
     pub actual_output: u64,
+    /// Highest quote received so far. Settlement pays this, not the user's minimum.
+    pub best_output: u64,
+    /// Solvers can bid until this time; settlement only after it.
+    pub auction_end: i64,
     
     /// Fees paid (protocol + solver)
     pub fees_paid: u64,
@@ -61,6 +65,8 @@ impl Intent {
         33 + // winning_solver (Option)
         33 + // best_solution (Option)
         8 + // actual_output
+        8 + // best_output
+        8 + // auction_end
         8 + // fees_paid
         8 + // seed
         1; // bump
@@ -71,18 +77,27 @@ impl Intent {
     }
 
     /// Check if intent can be cancelled
-    pub fn can_cancel(&self) -> bool {
-        matches!(self.status, IntentStatus::Open | IntentStatus::SolutionSubmitted)
+    /// The user can always get their tokens back unless the swap happened:
+    /// immediately if nobody bid, otherwise once the winner missed the deadline.
+    pub fn can_refund(&self, current_time: i64) -> bool {
+        match self.status {
+            IntentStatus::Open => true,
+            IntentStatus::SolutionSubmitted => self.is_expired(current_time),
+            _ => false,
+        }
     }
 
     /// Check if intent can accept solutions
     pub fn can_accept_solution(&self, current_time: i64) -> bool {
-        self.status == IntentStatus::Open && !self.is_expired(current_time)
+        matches!(self.status, IntentStatus::Open | IntentStatus::SolutionSubmitted)
+            && current_time <= self.auction_end
     }
 
     /// Check if intent is ready for settlement
     pub fn can_settle(&self, current_time: i64) -> bool {
-        self.status == IntentStatus::ReadyForSettlement && !self.is_expired(current_time)
+        self.status == IntentStatus::SolutionSubmitted
+            && current_time > self.auction_end
+            && !self.is_expired(current_time)
     }
 
     /// Calculate slippage percentage in basis points

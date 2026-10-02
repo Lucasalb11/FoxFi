@@ -45,6 +45,11 @@ pub fn create_intent(
     intent.winning_solver = None;
     intent.best_solution = None;
     intent.actual_output = 0;
+    intent.best_output = 0;
+    intent.auction_end = clock
+        .unix_timestamp
+        .checked_add(AUCTION_SECONDS)
+        .ok_or(FoxFiError::ArithmeticOverflow)?;
     intent.fees_paid = 0;
     intent.seed = seed;
     intent.bump = ctx.bumps.intent;

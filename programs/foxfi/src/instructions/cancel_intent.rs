@@ -1,38 +1,49 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount, Mint, transfer, Transfer};
+use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use crate::{constants::*, errors::*, state::*};
 
-/// Cancel an active intent
-/// Returns tokens to user if not yet executed
+/// Return the locked input to the user.
+///
+/// Allowed while nobody has bid, or after expiry if the winning solver never
+/// settled. In the second case the solver loses reputation. Expiry alone used to
+/// block cancellation, which left unfilled intents' tokens stuck in the vault.
 pub fn cancel_intent(ctx: Context<CancelIntent>) -> Result<()> {
-    let intent = &mut ctx.accounts.intent;
-    let clock = Clock::get()?;
+    let now = Clock::get()?.unix_timestamp;
+    let intent = &ctx.accounts.intent;
+    require!(intent.can_refund(now), FoxFiError::RefundNotAvailable);
+    let input_amount = intent.input_amount;
+    let defaulted = intent.status == IntentStatus::SolutionSubmitted;
+    let winner = intent.winning_solver;
 
-    // Check if intent can be cancelled
-    require!(intent.can_cancel(), FoxFiError::IntentAlreadyExecuted);
-    require!(!intent.is_expired(clock.unix_timestamp), FoxFiError::IntentExpired);
+    let config_bump = ctx.accounts.config.bump;
+    let signer_seeds: &[&[&[u8]]] = &[&[CONFIG_SEED, &[config_bump]]];
+    transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.input_vault.to_account_info(),
+                to: ctx.accounts.user_input_account.to_account_info(),
+                authority: ctx.accounts.config.to_account_info(),
+            },
+            signer_seeds,
+        ),
+        input_amount,
+    )?;
 
-    // Mark as cancelled
-    intent.status = IntentStatus::Cancelled;
+    ctx.accounts.intent.status = IntentStatus::Cancelled;
 
-    // Return input tokens to user
-    let seeds = &[
-        CONFIG_SEED,
-        &[ctx.accounts.config.bump],
-    ];
-    let signer_seeds = &[&seeds[..]];
+    if defaulted {
+        let solver = ctx
+            .accounts
+            .winning_solver
+            .as_mut()
+            .ok_or(FoxFiError::SolverNotRegistered)?;
+        require!(Some(solver.key()) == winner, FoxFiError::Unauthorized);
+        solver.update_reputation(false);
+        msg!("Winning solver missed the deadline; reputation reduced");
+    }
 
-    let cpi_accounts = Transfer {
-        from: ctx.accounts.input_vault.to_account_info(),
-        to: ctx.accounts.user_input_account.to_account_info(),
-        authority: ctx.accounts.config.to_account_info(),
-    };
-    let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
-    transfer(cpi_ctx, intent.input_amount)?;
-
-    msg!("Intent cancelled and tokens returned to user");
-
+    msg!("Refunded {} to the user", input_amount);
     Ok(())
 }
 
@@ -40,20 +51,14 @@ pub fn cancel_intent(ctx: Context<CancelIntent>) -> Result<()> {
 pub struct CancelIntent<'info> {
     #[account(
         mut,
-        seeds = [
-            INTENT_SEED,
-            user.key().as_ref(),
-            &intent.seed.to_le_bytes()
-        ],
+        seeds = [INTENT_SEED, user.key().as_ref(), &intent.seed.to_le_bytes()],
         bump = intent.bump,
-        has_one = user
+        has_one = user,
+        has_one = input_mint @ FoxFiError::InvalidMint,
     )]
     pub intent: Account<'info, Intent>,
 
-    #[account(
-        seeds = [CONFIG_SEED],
-        bump = config.bump
-    )]
+    #[account(seeds = [CONFIG_SEED], bump = config.bump)]
     pub config: Account<'info, ProtocolConfig>,
 
     #[account(mut)]
@@ -61,11 +66,7 @@ pub struct CancelIntent<'info> {
 
     pub input_mint: Account<'info, Mint>,
 
-    #[account(
-        mut,
-        associated_token::mint = input_mint,
-        associated_token::authority = user
-    )]
+    #[account(mut, associated_token::mint = input_mint, associated_token::authority = user)]
     pub user_input_account: Account<'info, TokenAccount>,
 
     #[account(
@@ -77,6 +78,9 @@ pub struct CancelIntent<'info> {
     )]
     pub input_vault: Account<'info, TokenAccount>,
 
+    /// Required only when refunding after the winner defaulted.
+    #[account(mut)]
+    pub winning_solver: Option<Account<'info, Solver>>,
+
     pub token_program: Program<'info, Token>,
 }
-

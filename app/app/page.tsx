@@ -28,8 +28,8 @@ export default function Home() {
             Intent-Based DEX on Solana
           </p>
           <p className="text-sm text-gray-400 max-w-2xl mx-auto">
-            Express what you want to trade, let solvers compete for the best execution. 
-            Get better prices with MEV protection.
+            Say what you want to trade and the least you&apos;ll accept. Solvers bid for 20 seconds; the best quote
+            settles atomically, or you get your tokens back. Runs on Solana devnet with demo tokens.
           </p>
         </div>
 

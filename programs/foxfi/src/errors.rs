@@ -70,5 +70,13 @@ pub enum FoxFiError {
 
     #[msg("Invalid vault authority")]
     InvalidVaultAuthority,
-}
 
+    #[msg("The bidding window for this intent has closed")]
+    AuctionClosed,
+
+    #[msg("Bidding is still open; settle after the auction ends")]
+    AuctionStillOpen,
+
+    #[msg("Refunds are only available before any bid, or after the winner misses the deadline")]
+    RefundNotAvailable,
+}

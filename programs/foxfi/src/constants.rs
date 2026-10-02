@@ -47,3 +47,7 @@ pub const MAX_INTENT_EXPIRATION: i64 = 86400; // 24 hours maximum
 #[constant]
 pub const BPS_DENOMINATOR: u64 = 10_000;
 
+
+/// How long solvers can bid on a new intent. Settlement opens afterwards.
+#[constant]
+pub const AUCTION_SECONDS: i64 = 20;

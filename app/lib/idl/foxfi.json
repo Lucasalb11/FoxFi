@@ -1,0 +1,2101 @@
+{
+  "address": "FBC9go2hb8pMYGgeAYZa6hWYPSxFbGVuF3fv1J7gtXtb",
+  "metadata": {
+    "name": "foxfi",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "FoxFi Protocol - Intent-Based DEX on Solana"
+  },
+  "instructions": [
+    {
+      "name": "cancel_intent",
+      "docs": [
+        "Refunds the user's input: before any bid, or after the winner misses the deadline"
+      ],
+      "discriminator": [
+        67,
+        73,
+        238,
+        244,
+        208,
+        89,
+        225,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "intent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "intent.seed",
+                "account": "Intent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "intent"
+          ]
+        },
+        {
+          "name": "input_mint",
+          "relations": [
+            "intent"
+          ]
+        },
+        {
+          "name": "user_input_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "input_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "input_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "input_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "winning_solver",
+          "docs": [
+            "Required only when refunding after the winner defaulted."
+          ],
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_solver",
+      "docs": [
+        "Solver leaves the network and gets its stake back"
+      ],
+      "discriminator": [
+        64,
+        175,
+        7,
+        85,
+        37,
+        105,
+        59,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "solver",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  108,
+                  118,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "solver"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_intent",
+      "docs": [
+        "Creates a new swap intent",
+        "User submits what they want to swap and constraints"
+      ],
+      "discriminator": [
+        216,
+        214,
+        79,
+        121,
+        23,
+        194,
+        96,
+        104
+      ],
+      "accounts": [
+        {
+          "name": "intent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "config.total_intents",
+                "account": "ProtocolConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "input_mint"
+        },
+        {
+          "name": "output_mint"
+        },
+        {
+          "name": "user_input_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "input_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "input_vault",
+          "docs": [
+            "Vault to hold input tokens during intent lifecycle",
+            "Note: In production, use a single vault per mint initialized separately"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "input_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "input_amount",
+          "type": "u64"
+        },
+        {
+          "name": "min_output_amount",
+          "type": "u64"
+        },
+        {
+          "name": "expiration_seconds",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "execute_settlement",
+      "docs": [
+        "Winning solver pays its quote and receives the user's input, atomically"
+      ],
+      "discriminator": [
+        237,
+        120,
+        82,
+        62,
+        224,
+        193,
+        147,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "intent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "intent.user",
+                "account": "Intent"
+              },
+              {
+                "kind": "account",
+                "path": "intent.seed",
+                "account": "Intent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solver",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  108,
+                  118,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "solver_authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "solver_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user",
+          "relations": [
+            "intent"
+          ]
+        },
+        {
+          "name": "input_mint",
+          "relations": [
+            "intent"
+          ]
+        },
+        {
+          "name": "output_mint",
+          "relations": [
+            "intent"
+          ]
+        },
+        {
+          "name": "input_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "input_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_output_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "output_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "solver_output_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "solver_authority"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "output_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "solver_input_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "solver_authority"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "input_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "protocol_fee_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "config.treasury",
+                "account": "ProtocolConfig"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "output_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "Initializes the protocol configuration",
+        "Only called once to set up the protocol"
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "protocol_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "solver_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "min_solver_stake",
+          "type": "u64"
+        },
+        {
+          "name": "max_slippage_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "initialize_vault",
+      "docs": [
+        "Initialize a token vault (must be called before creating intents for that token)"
+      ],
+      "discriminator": [
+        48,
+        191,
+        163,
+        44,
+        71,
+        129,
+        63,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint"
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Vault to hold tokens"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "register_solver",
+      "docs": [
+        "Registers a new solver in the network",
+        "Solver must stake minimum amount to participate"
+      ],
+      "discriminator": [
+        143,
+        125,
+        182,
+        215,
+        172,
+        69,
+        137,
+        105
+      ],
+      "accounts": [
+        {
+          "name": "solver",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  108,
+                  118,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "stake_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "submit_solution",
+      "docs": [
+        "Solver submits a solution for an intent",
+        "Solution includes expected output amount and route"
+      ],
+      "discriminator": [
+        203,
+        233,
+        157,
+        191,
+        70,
+        37,
+        205,
+        0
+      ],
+      "accounts": [
+        {
+          "name": "intent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "intent.user",
+                "account": "Intent"
+              },
+              {
+                "kind": "account",
+                "path": "intent.seed",
+                "account": "Intent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "intent"
+              },
+              {
+                "kind": "account",
+                "path": "solver"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solver",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  108,
+                  118,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "solver_authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "solver_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_output",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "docs": [
+        "Admin updates protocol configuration"
+      ],
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "protocol_fee_bps",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "solver_fee_bps",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "min_solver_stake",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "max_slippage_bps",
+          "type": {
+            "option": "u16"
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Intent",
+      "discriminator": [
+        247,
+        162,
+        35,
+        165,
+        254,
+        111,
+        129,
+        109
+      ]
+    },
+    {
+      "name": "ProtocolConfig",
+      "discriminator": [
+        207,
+        91,
+        250,
+        28,
+        152,
+        179,
+        215,
+        209
+      ]
+    },
+    {
+      "name": "Solution",
+      "discriminator": [
+        224,
+        203,
+        158,
+        221,
+        167,
+        87,
+        165,
+        3
+      ]
+    },
+    {
+      "name": "Solver",
+      "discriminator": [
+        174,
+        70,
+        187,
+        101,
+        208,
+        40,
+        95,
+        77
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ProtocolFeeTooHigh",
+      "msg": "Protocol fee exceeds maximum allowed"
+    },
+    {
+      "code": 6001,
+      "name": "SolverFeeTooHigh",
+      "msg": "Solver fee exceeds maximum allowed"
+    },
+    {
+      "code": 6002,
+      "name": "SlippageTooHigh",
+      "msg": "Slippage tolerance exceeds maximum allowed"
+    },
+    {
+      "code": 6003,
+      "name": "IntentExpired",
+      "msg": "Intent has already expired"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidExpiration",
+      "msg": "Intent expiration time is invalid"
+    },
+    {
+      "code": 6005,
+      "name": "IntentStillActive",
+      "msg": "Intent is still active and cannot be cancelled"
+    },
+    {
+      "code": 6006,
+      "name": "IntentAlreadyExecuted",
+      "msg": "Intent has already been executed"
+    },
+    {
+      "code": 6007,
+      "name": "IntentCancelled",
+      "msg": "Intent has been cancelled"
+    },
+    {
+      "code": 6008,
+      "name": "MinOutputNotMet",
+      "msg": "Minimum output amount not met"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidSolution",
+      "msg": "Solution does not meet intent requirements"
+    },
+    {
+      "code": 6010,
+      "name": "SolverNotRegistered",
+      "msg": "Solver is not registered"
+    },
+    {
+      "code": 6011,
+      "name": "InsufficientSolverStake",
+      "msg": "Solver stake is insufficient"
+    },
+    {
+      "code": 6012,
+      "name": "SolverNotActive",
+      "msg": "Solver is not active"
+    },
+    {
+      "code": 6013,
+      "name": "SolverAlreadyRegistered",
+      "msg": "Solver already registered"
+    },
+    {
+      "code": 6014,
+      "name": "NoRewardsToClaim",
+      "msg": "No rewards available to claim"
+    },
+    {
+      "code": 6015,
+      "name": "Unauthorized",
+      "msg": "Unauthorized access"
+    },
+    {
+      "code": 6016,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidMint",
+      "msg": "Invalid token mint"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidInputAmount",
+      "msg": "Input amount must be greater than zero"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidOutputAmount",
+      "msg": "Output amount must be greater than zero"
+    },
+    {
+      "code": 6020,
+      "name": "SolutionAlreadySubmitted",
+      "msg": "Solution already submitted for this intent"
+    },
+    {
+      "code": 6021,
+      "name": "IntentNotReadyForSettlement",
+      "msg": "Intent not ready for settlement"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidVaultAuthority",
+      "msg": "Invalid vault authority"
+    },
+    {
+      "code": 6023,
+      "name": "AuctionClosed",
+      "msg": "The bidding window for this intent has closed"
+    },
+    {
+      "code": 6024,
+      "name": "AuctionStillOpen",
+      "msg": "Bidding is still open; settle after the auction ends"
+    },
+    {
+      "code": 6025,
+      "name": "RefundNotAvailable",
+      "msg": "Refunds are only available before any bid, or after the winner misses the deadline"
+    }
+  ],
+  "types": [
+    {
+      "name": "Intent",
+      "docs": [
+        "Represents a user's swap intent",
+        "This is the core data structure of FoxFi Protocol"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "docs": [
+              "User who created this intent"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "input_mint",
+            "docs": [
+              "Token the user wants to swap from"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "output_mint",
+            "docs": [
+              "Token the user wants to receive"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "input_amount",
+            "docs": [
+              "Amount of input token to swap"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "min_output_amount",
+            "docs": [
+              "Minimum acceptable amount of output token",
+              "Protects against slippage"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "expiration",
+            "docs": [
+              "Unix timestamp when this intent expires"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "When this intent was created"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "Current status of this intent"
+            ],
+            "type": {
+              "defined": {
+                "name": "IntentStatus"
+              }
+            }
+          },
+          {
+            "name": "winning_solver",
+            "docs": [
+              "Solver who won the right to execute this intent"
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "best_solution",
+            "docs": [
+              "Best solution submitted so far"
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "actual_output",
+            "docs": [
+              "Actual output amount received (set after execution)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "best_output",
+            "docs": [
+              "Highest quote received so far. Settlement pays this, not the user's minimum."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "auction_end",
+            "docs": [
+              "Solvers can bid until this time; settlement only after it."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "fees_paid",
+            "docs": [
+              "Fees paid (protocol + solver)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "seed",
+            "docs": [
+              "Seed used for PDA derivation"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump seed for PDA"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IntentStatus",
+      "docs": [
+        "Status of an intent through its lifecycle"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "SolutionSubmitted"
+          },
+          {
+            "name": "ReadyForSettlement"
+          },
+          {
+            "name": "Executed"
+          },
+          {
+            "name": "Cancelled"
+          },
+          {
+            "name": "Expired"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtocolConfig",
+      "docs": [
+        "Protocol configuration account",
+        "Stores global protocol parameters that can be updated by admin"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "docs": [
+              "Admin authority that can update config"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "protocol_fee_bps",
+            "docs": [
+              "Protocol fee in basis points (1 bps = 0.01%)",
+              "Goes to protocol treasury"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "solver_fee_bps",
+            "docs": [
+              "Solver reward fee in basis points",
+              "Paid to solver for finding best execution"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "min_solver_stake",
+            "docs": [
+              "Minimum stake required to become a solver"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_slippage_bps",
+            "docs": [
+              "Maximum allowed slippage in basis points"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "Protocol treasury for collecting fees"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "total_protocol_fees",
+            "docs": [
+              "Total fees collected by protocol"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_solver_fees",
+            "docs": [
+              "Total fees paid to solvers"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_intents",
+            "docs": [
+              "Total number of intents created"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_executed",
+            "docs": [
+              "Total number of intents executed"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_volume",
+            "docs": [
+              "Total volume processed (in USD equivalent)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump seed for PDA"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Solution",
+      "docs": [
+        "Represents a solver's proposed solution for an intent",
+        "Solvers submit solutions that compete for best execution"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "intent",
+            "docs": [
+              "Intent this solution is for"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "solver",
+            "docs": [
+              "Solver who submitted this solution"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "expected_output",
+            "docs": [
+              "Expected output amount this solution will provide"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "route",
+            "docs": [
+              "Execution route/path (for future multi-hop support)",
+              "For MVP, this could be empty or contain DEX identifier"
+            ],
+            "type": "bytes"
+          },
+          {
+            "name": "submitted_at",
+            "docs": [
+              "When this solution was submitted"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "is_winning",
+            "docs": [
+              "Whether this solution won"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump seed for PDA"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Solver",
+      "docs": [
+        "Solver account - represents a registered solver in the network",
+        "Solvers compete to find best execution for intents"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "Authority that controls this solver"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_amount",
+            "docs": [
+              "Amount staked by this solver",
+              "Required to participate and can be slashed for misbehavior"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_solved",
+            "docs": [
+              "Total number of intents solved by this solver"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_failed",
+            "docs": [
+              "Total number of intents failed/invalid"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reputation_score",
+            "docs": [
+              "Reputation score (0-10000 basis points)",
+              "Higher score = better solver"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_earned",
+            "docs": [
+              "Total fees earned by this solver"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "unclaimed_rewards",
+            "docs": [
+              "Unclaimed rewards available for withdrawal"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "docs": [
+              "Whether this solver is active"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "registered_at",
+            "docs": [
+              "When this solver was registered"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "last_active",
+            "docs": [
+              "Last time this solver submitted a solution"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump seed for PDA"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "AUCTION_SECONDS",
+      "docs": [
+        "How long solvers can bid on a new intent. Settlement opens afterwards."
+      ],
+      "type": "i64",
+      "value": "20"
+    },
+    {
+      "name": "BPS_DENOMINATOR",
+      "type": "u64",
+      "value": "10000"
+    },
+    {
+      "name": "CONFIG_SEED",
+      "type": "bytes",
+      "value": "[99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "DEFAULT_MAX_SLIPPAGE_BPS",
+      "type": "u16",
+      "value": "100"
+    },
+    {
+      "name": "DEFAULT_MIN_SOLVER_STAKE",
+      "type": "u64",
+      "value": "1000000000"
+    },
+    {
+      "name": "DEFAULT_PROTOCOL_FEE_BPS",
+      "type": "u16",
+      "value": "5"
+    },
+    {
+      "name": "DEFAULT_SOLVER_FEE_BPS",
+      "type": "u16",
+      "value": "10"
+    },
+    {
+      "name": "INTENT_SEED",
+      "type": "bytes",
+      "value": "[105, 110, 116, 101, 110, 116]"
+    },
+    {
+      "name": "MAX_INTENT_EXPIRATION",
+      "type": "i64",
+      "value": "86400"
+    },
+    {
+      "name": "MAX_PROTOCOL_FEE_BPS",
+      "type": "u16",
+      "value": "100"
+    },
+    {
+      "name": "MAX_SLIPPAGE_BPS",
+      "type": "u16",
+      "value": "1000"
+    },
+    {
+      "name": "MAX_SOLVER_FEE_BPS",
+      "type": "u16",
+      "value": "200"
+    },
+    {
+      "name": "MIN_INTENT_EXPIRATION",
+      "type": "i64",
+      "value": "60"
+    },
+    {
+      "name": "SOLUTION_SEED",
+      "type": "bytes",
+      "value": "[115, 111, 108, 117, 116, 105, 111, 110]"
+    },
+    {
+      "name": "SOLVER_SEED",
+      "type": "bytes",
+      "value": "[115, 111, 108, 118, 101, 114]"
+    },
+    {
+      "name": "VAULT_SEED",
+      "type": "bytes",
+      "value": "[118, 97, 117, 108, 116]"
+    }
+  ]
+}

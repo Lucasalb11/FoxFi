@@ -10,7 +10,7 @@ pub use errors::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("Fg1xJv2fPHmhWzH8z9h8nQc9qKjYxqcWxQyRJqzqxqcW");
+declare_id!("FBC9go2hb8pMYGgeAYZa6hWYPSxFbGVuF3fv1J7gtXtb");
 
 #[program]
 pub mod foxfi {
@@ -50,8 +50,7 @@ pub mod foxfi {
         instructions::create_intent(ctx, input_amount, min_output_amount, expiration_seconds)
     }
 
-    /// Cancels an active intent
-    /// User can cancel before expiration or before solver execution
+    /// Refunds the user's input: before any bid, or after the winner misses the deadline
     pub fn cancel_intent(ctx: Context<CancelIntent>) -> Result<()> {
         instructions::cancel_intent(ctx)
     }
@@ -71,15 +70,14 @@ pub mod foxfi {
         instructions::submit_solution(ctx, expected_output)
     }
 
-    /// Executes the settlement of an intent with winning solution
-    /// Performs the actual swap and distributes fees
+    /// Winning solver pays its quote and receives the user's input, atomically
     pub fn execute_settlement(ctx: Context<ExecuteSettlement>) -> Result<()> {
         instructions::execute_settlement(ctx)
     }
 
-    /// Solver claims accumulated rewards
-    pub fn claim_solver_rewards(ctx: Context<ClaimSolverRewards>) -> Result<()> {
-        instructions::claim_solver_rewards(ctx)
+    /// Solver leaves the network and gets its stake back
+    pub fn close_solver(ctx: Context<CloseSolver>) -> Result<()> {
+        instructions::close_solver(ctx)
     }
 
     /// Admin updates protocol configuration

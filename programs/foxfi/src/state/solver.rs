@@ -93,26 +93,4 @@ impl Solver {
         self.is_active && self.stake_amount >= min_stake
     }
 
-    /// Add rewards to unclaimed balance
-    pub fn add_rewards(&mut self, amount: u64) -> Result<()> {
-        self.unclaimed_rewards = self.unclaimed_rewards
-            .checked_add(amount)
-            .ok_or(error!(crate::FoxFiError::ArithmeticOverflow))?;
-        
-        self.total_fees_earned = self.total_fees_earned
-            .checked_add(amount)
-            .ok_or(error!(crate::FoxFiError::ArithmeticOverflow))?;
-        
-        Ok(())
-    }
-
-    /// Claim all unclaimed rewards
-    pub fn claim_all_rewards(&mut self) -> Result<u64> {
-        let amount = self.unclaimed_rewards;
-        require!(amount > 0, crate::FoxFiError::NoRewardsToClaim);
-        
-        self.unclaimed_rewards = 0;
-        Ok(amount)
-    }
 }
-

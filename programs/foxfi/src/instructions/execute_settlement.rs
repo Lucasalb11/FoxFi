@@ -1,93 +1,92 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount, Mint, transfer, Transfer};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use crate::{constants::*, errors::*, state::*};
 
-/// Execute settlement of an intent
-/// Performs the swap and distributes fees
+/// Settle an intent with the winning quote.
+///
+/// The winning solver pays the user exactly what it quoted (minus the protocol
+/// fee) from its own output tokens, and in the same transaction receives the
+/// user's locked input from the vault. Either both legs happen or neither does.
 pub fn execute_settlement(ctx: Context<ExecuteSettlement>) -> Result<()> {
-    let intent = &mut ctx.accounts.intent;
-    let solver = &mut ctx.accounts.solver;
-    let config = &mut ctx.accounts.config;
-    let clock = Clock::get()?;
+    let now = Clock::get()?.unix_timestamp;
+    let intent = &ctx.accounts.intent;
 
-    // Validate intent is ready for settlement
+    require!(now > intent.auction_end, FoxFiError::AuctionStillOpen);
+    require!(intent.can_settle(now), FoxFiError::IntentNotReadyForSettlement);
     require!(
-        intent.can_settle(clock.unix_timestamp),
-        FoxFiError::IntentNotReadyForSettlement
-    );
-
-    // Verify winning solver
-    require!(
-        Some(solver.key()) == intent.winning_solver,
+        intent.winning_solver == Some(ctx.accounts.solver.key()),
         FoxFiError::Unauthorized
     );
 
-    // For MVP: We simulate the swap by transferring tokens from solver to user
-    // In production, this would involve CPI calls to DEXs (Orca, Raydium, etc)
-    
-    // Calculate output amount (from solution)
-    // In real implementation, this would come from actual DEX execution
-    let output_amount = intent.min_output_amount; // MVP: use minimum for safety
+    let quoted = intent.best_output;
+    let protocol_fee = ctx.accounts.config.calculate_protocol_fee(quoted)?;
+    let net_output = quoted.checked_sub(protocol_fee).ok_or(FoxFiError::ArithmeticOverflow)?;
+    // The fee never pushes the user below the minimum they asked for.
+    require!(net_output >= intent.min_output_amount, FoxFiError::MinOutputNotMet);
+    let input_amount = intent.input_amount;
 
-    // Calculate fees
-    let protocol_fee = config.calculate_protocol_fee(output_amount)?;
-    let solver_fee = config.calculate_solver_fee(output_amount)?;
-    let total_fees = protocol_fee.checked_add(solver_fee)
-        .ok_or(FoxFiError::ArithmeticOverflow)?;
-
-    // Net amount to user after fees
-    let net_output = output_amount.checked_sub(total_fees)
-        .ok_or(FoxFiError::ArithmeticOverflow)?;
-
-    // Transfer output tokens to user (MVP: from solver's account)
-    // In production: would come from DEX pools
-    let cpi_accounts = Transfer {
-        from: ctx.accounts.solver_output_account.to_account_info(),
-        to: ctx.accounts.user_output_account.to_account_info(),
-        authority: ctx.accounts.solver_authority.to_account_info(),
-    };
-    let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-    transfer(cpi_ctx, net_output)?;
-
-    // Transfer protocol fee
+    // Leg 1: solver pays the user (and the protocol fee) from its own tokens.
+    let token_program = ctx.accounts.token_program.to_account_info();
+    transfer(
+        CpiContext::new(
+            token_program.clone(),
+            Transfer {
+                from: ctx.accounts.solver_output_account.to_account_info(),
+                to: ctx.accounts.user_output_account.to_account_info(),
+                authority: ctx.accounts.solver_authority.to_account_info(),
+            },
+        ),
+        net_output,
+    )?;
     if protocol_fee > 0 {
-        let cpi_accounts = Transfer {
-            from: ctx.accounts.solver_output_account.to_account_info(),
-            to: ctx.accounts.protocol_fee_account.to_account_info(),
-            authority: ctx.accounts.solver_authority.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
-        transfer(cpi_ctx, protocol_fee)?;
+        transfer(
+            CpiContext::new(
+                token_program.clone(),
+                Transfer {
+                    from: ctx.accounts.solver_output_account.to_account_info(),
+                    to: ctx.accounts.protocol_fee_account.to_account_info(),
+                    authority: ctx.accounts.solver_authority.to_account_info(),
+                },
+            ),
+            protocol_fee,
+        )?;
     }
 
-    // Add solver fee to unclaimed rewards
-    solver.add_rewards(solver_fee)?;
+    // Leg 2: the vault releases the user's input to the solver.
+    let config_bump = ctx.accounts.config.bump;
+    let signer_seeds: &[&[&[u8]]] = &[&[CONFIG_SEED, &[config_bump]]];
+    transfer(
+        CpiContext::new_with_signer(
+            token_program,
+            Transfer {
+                from: ctx.accounts.input_vault.to_account_info(),
+                to: ctx.accounts.solver_input_account.to_account_info(),
+                authority: ctx.accounts.config.to_account_info(),
+            },
+            signer_seeds,
+        ),
+        input_amount,
+    )?;
 
-    // Update intent
+    let intent = &mut ctx.accounts.intent;
     intent.status = IntentStatus::Executed;
     intent.actual_output = net_output;
-    intent.fees_paid = total_fees;
+    intent.fees_paid = protocol_fee;
 
-    // Update solver reputation
+    let solver = &mut ctx.accounts.solver;
     solver.update_reputation(true);
+    solver.last_active = now;
 
-    // Update global stats
-    config.total_executed = config.total_executed
-        .checked_add(1)
-        .ok_or(FoxFiError::ArithmeticOverflow)?;
-    config.total_protocol_fees = config.total_protocol_fees
+    let config = &mut ctx.accounts.config;
+    config.total_executed = config.total_executed.checked_add(1).ok_or(FoxFiError::ArithmeticOverflow)?;
+    config.total_protocol_fees = config
+        .total_protocol_fees
         .checked_add(protocol_fee)
         .ok_or(FoxFiError::ArithmeticOverflow)?;
-    config.total_solver_fees = config.total_solver_fees
-        .checked_add(solver_fee)
-        .ok_or(FoxFiError::ArithmeticOverflow)?;
+    config.total_volume = config.total_volume.checked_add(input_amount).ok_or(FoxFiError::ArithmeticOverflow)?;
 
-    msg!("Intent executed successfully!");
-    msg!("Output: {} (net: {})", output_amount, net_output);
-    msg!("Fees: {} (protocol: {}, solver: {})", total_fees, protocol_fee, solver_fee);
-    msg!("Solver reputation: {}", solver.reputation_score);
-
+    msg!("Settled: user received {} (quote {}, fee {})", net_output, quoted, protocol_fee);
     Ok(())
 }
 
@@ -95,57 +94,55 @@ pub fn execute_settlement(ctx: Context<ExecuteSettlement>) -> Result<()> {
 pub struct ExecuteSettlement<'info> {
     #[account(
         mut,
-        seeds = [
-            INTENT_SEED,
-            intent.user.as_ref(),
-            &intent.seed.to_le_bytes()
-        ],
-        bump = intent.bump
+        seeds = [INTENT_SEED, intent.user.as_ref(), &intent.seed.to_le_bytes()],
+        bump = intent.bump,
+        has_one = user,
+        has_one = input_mint @ FoxFiError::InvalidMint,
+        has_one = output_mint @ FoxFiError::InvalidMint,
     )]
-    pub intent: Account<'info, Intent>,
+    pub intent: Box<Account<'info, Intent>>,
 
     #[account(
         mut,
         seeds = [SOLVER_SEED, solver_authority.key().as_ref()],
-        bump = solver.bump
+        bump = solver.bump,
+        constraint = solver.authority == solver_authority.key() @ FoxFiError::Unauthorized
     )]
-    pub solver: Account<'info, Solver>,
+    pub solver: Box<Account<'info, Solver>>,
 
-    #[account(
-        mut,
-        seeds = [CONFIG_SEED],
-        bump = config.bump
-    )]
-    pub config: Account<'info, ProtocolConfig>,
+    #[account(mut, seeds = [CONFIG_SEED], bump = config.bump)]
+    pub config: Box<Account<'info, ProtocolConfig>>,
 
+    #[account(mut)]
     pub solver_authority: Signer<'info>,
 
-    pub output_mint: Account<'info, Mint>,
-
-    /// CHECK: User who created the intent
+    /// CHECK: bound to the intent by `has_one = user`; only receives tokens.
     pub user: UncheckedAccount<'info>,
 
-    #[account(
-        mut,
-        associated_token::mint = output_mint,
-        associated_token::authority = user
-    )]
-    pub user_output_account: Account<'info, TokenAccount>,
+    pub input_mint: Box<Account<'info, Mint>>,
+    pub output_mint: Box<Account<'info, Mint>>,
 
     #[account(
         mut,
-        associated_token::mint = output_mint,
-        associated_token::authority = solver_authority
+        seeds = [VAULT_SEED, input_mint.key().as_ref()],
+        bump,
+        token::mint = input_mint,
+        token::authority = config
     )]
-    pub solver_output_account: Account<'info, TokenAccount>,
+    pub input_vault: Box<Account<'info, TokenAccount>>,
 
-    #[account(
-        mut,
-        associated_token::mint = output_mint,
-        associated_token::authority = config.treasury
-    )]
-    pub protocol_fee_account: Account<'info, TokenAccount>,
+    #[account(mut, associated_token::mint = output_mint, associated_token::authority = user)]
+    pub user_output_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(mut, associated_token::mint = output_mint, associated_token::authority = solver_authority)]
+    pub solver_output_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(mut, associated_token::mint = input_mint, associated_token::authority = solver_authority)]
+    pub solver_input_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(mut, associated_token::mint = output_mint, associated_token::authority = config.treasury)]
+    pub protocol_fee_account: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
-

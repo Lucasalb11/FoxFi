@@ -22,52 +22,31 @@ pub fn submit_solution(
     // Validate intent can accept solutions
     require!(
         intent.can_accept_solution(clock.unix_timestamp),
-        FoxFiError::IntentExpired
+        FoxFiError::AuctionClosed
     );
-
-    // Validate solution meets minimum requirements
     require!(
         expected_output >= intent.min_output_amount,
         FoxFiError::MinOutputNotMet
     );
 
-    // Initialize solution
     solution.intent = intent.key();
     solution.solver = solver.key();
     solution.expected_output = expected_output;
-    solution.route = vec![]; // For MVP, empty route
+    solution.route = vec![]; // Routing happens off-chain; the solver delivers the output itself.
     solution.submitted_at = clock.unix_timestamp;
-    solution.is_winning = false;
     solution.bump = ctx.bumps.solution;
 
-    // Update intent status
-    if intent.status == IntentStatus::Open {
-        intent.status = IntentStatus::SolutionSubmitted;
-    }
+    intent.status = IntentStatus::SolutionSubmitted;
 
-    // Check if this is the best solution so far
-    let is_best = if let Some(_best_solution_key) = intent.best_solution {
-        // Compare with existing best solution
-        // In a real implementation, we'd load the best solution and compare
-        // For MVP, we'll use a simple comparison based on expected_output
-        // This is a simplification - production would need more sophisticated logic
-        expected_output > intent.min_output_amount
-    } else {
-        // First solution is automatically best
-        true
-    };
-
-    if is_best {
+    // Strictly better quotes replace the leader; ties keep the earlier bid.
+    solution.is_winning = expected_output > intent.best_output;
+    if solution.is_winning {
+        intent.best_output = expected_output;
         intent.best_solution = Some(solution.key());
         intent.winning_solver = Some(solver.key());
-        intent.status = IntentStatus::ReadyForSettlement;
-        solution.is_winning = true;
-        
-        msg!("New best solution!");
-        msg!("Expected output: {}", expected_output);
+        msg!("New best quote: {}", expected_output);
     }
 
-    // Update solver stats
     solver.last_active = clock.unix_timestamp;
 
     msg!("Solution submitted by solver: {}", solver.authority);

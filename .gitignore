@@ -58,3 +58,7 @@ yarn-error.log*
 tmp/
 temp/
 
+graphify-out/
+
+.secrets/
+*.tsbuildinfo
