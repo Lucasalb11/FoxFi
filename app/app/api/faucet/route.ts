@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
-import { Connection, Keypair, PublicKey } from '@solana/web3.js'
-import { getAccount, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token'
+import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
+import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  createMintToInstruction,
+  getAssociatedTokenAddressSync,
+} from '@solana/spl-token'
 
 export const runtime = 'nodejs'
 
@@ -19,6 +23,11 @@ function faucetKey(): Keypair | null {
   }
 }
 
+/**
+ * Returns a transaction the user's wallet signs and sends. The user is the fee payer and pays
+ * the rent for their own token accounts; the faucet only co-signs as mint authority, so
+ * scripted requests for fresh addresses can't drain the faucet's SOL.
+ */
 export async function POST(req: Request) {
   const faucet = faucetKey()
   const mints = [process.env.NEXT_PUBLIC_FOXFI_INPUT_MINT, process.env.NEXT_PUBLIC_FOXFI_OUTPUT_MINT]
@@ -32,23 +41,40 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: 'Send { "wallet": "<base58 address>" }.' }, { status: 400 })
   }
-
-  const connection = new Connection(RPC, 'confirmed')
-  const minted: string[] = []
-  try {
-    for (const mint of mints.map((m) => new PublicKey(m!))) {
-      const account = await getOrCreateAssociatedTokenAccount(connection, faucet, mint, owner)
-      const current = Number((await getAccount(connection, account.address)).amount)
-      if (current >= REFILL_BELOW) continue
-      minted.push(await mintTo(connection, faucet, mint, account.address, faucet, PER_REQUEST))
-    }
-  } catch (e) {
-    return NextResponse.json({ error: `Faucet transaction failed: ${(e as Error).message}` }, { status: 502 })
+  if (!PublicKey.isOnCurve(owner.toBytes())) {
+    return NextResponse.json({ error: 'Use a wallet address, not a program account.' }, { status: 400 })
   }
 
-  return NextResponse.json({
-    minted: minted.length,
-    message: minted.length ? 'Sent 100 of each demo token.' : 'You already have enough demo tokens.',
-    signatures: minted,
-  })
+  const connection = new Connection(RPC, 'confirmed')
+  try {
+    const tx = new Transaction()
+    for (const mint of mints.map((m) => new PublicKey(m!))) {
+      const account = getAssociatedTokenAddressSync(mint, owner)
+      const balance = await connection.getTokenAccountBalance(account).then(
+        (b) => Number(b.value.amount),
+        () => 0,
+      )
+      if (balance >= REFILL_BELOW) continue
+      tx.add(
+        createAssociatedTokenAccountIdempotentInstruction(owner, account, owner, mint),
+        createMintToInstruction(mint, account, faucet.publicKey, PER_REQUEST),
+      )
+    }
+    if (!tx.instructions.length) {
+      return NextResponse.json({ message: 'You already have enough demo tokens.' })
+    }
+
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+    tx.feePayer = owner
+    tx.recentBlockhash = blockhash
+    tx.lastValidBlockHeight = lastValidBlockHeight
+    tx.partialSign(faucet)
+    return NextResponse.json({
+      transaction: tx.serialize({ requireAllSignatures: false }).toString('base64'),
+      message: 'Approve in your wallet to receive 100 of each demo token.',
+    })
+  } catch (e) {
+    console.error('[faucet]', e)
+    return NextResponse.json({ error: 'The faucet couldn’t build the transaction. Try again.' }, { status: 502 })
+  }
 }

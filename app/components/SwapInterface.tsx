@@ -20,6 +20,7 @@ import {
   vaultPda,
 } from '@/lib/foxfi'
 import { BN } from '@coral-xyz/anchor'
+import { Transaction } from '@solana/web3.js'
 
 export const SwapInterface = ({ onCreated }: { onCreated?: () => void }) => {
   const { connection } = useConnection()
@@ -38,7 +39,18 @@ export const SwapInterface = ({ onCreated }: { onCreated?: () => void }) => {
         body: JSON.stringify({ wallet: wallet.publicKey.toBase58() }),
       })
       const body = await res.json()
-      res.ok ? toast.success(body.message) : toast.error(body.error)
+      if (!res.ok) return toast.error(body.error)
+      if (!body.transaction) return toast.success(body.message)
+      // The faucet co-signed as mint authority; the wallet pays the fee and account rent.
+      const tx = await wallet.signTransaction(Transaction.from(Buffer.from(body.transaction, 'base64')))
+      const signature = await connection.sendRawTransaction(tx.serialize())
+      await connection.confirmTransaction(
+        { signature, blockhash: tx.recentBlockhash!, lastValidBlockHeight: tx.lastValidBlockHeight! },
+        'confirmed',
+      )
+      toast.success('Demo tokens received.')
+    } catch (e) {
+      toast.error(reason(e))
     } finally {
       setBusy(null)
     }
